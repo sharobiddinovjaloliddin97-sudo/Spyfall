@@ -1,0 +1,38 @@
+"""Add or remove locations here; every location needs at least one role."""
+
+LOCATIONS = {
+    "Restoran": ("Ofitsiant", "Oshpaz", "Mijoz", "Menejer"),
+    "Samolyot": ("Uchuvchi", "Styuard", "Yo‘lovchi", "Ikkinchi uchuvchi"),
+    "Maktab": ("O‘qituvchi", "O‘quvchi", "Direktor", "Kutubxonachi"),
+    "Kasalxona": ("Shifokor", "Hamshira", "Bemor", "Jarroh"),
+    "Konsert": ("Xonanda", "Tomoshabin", "Ovoz rejissyori", "Musiqachi"),
+    "Kosmik stansiya": ("Kosmonavt", "Muhandis", "Olim", "Qo‘mondon"),
+    "Poyezd": ("Mashinist", "Yo‘lovchi", "Kuzatuvchi", "Nazoratchi"),
+    "Plyaj": ("Dam oluvchi", "Qutqaruvchi", "Sotuvchi", "Suzuvchi"),
+    "Bank": ("Kassir", "Mijoz", "Qo‘riqchi", "Boshqaruvchi"),
+    "Sirk": ("Masxaraboz", "Akrobat", "Tomoshabin", "Hayvon o‘rgatuvchi"),
+    "Mehmonxona": ("Mehmon", "Administrator", "Farrosh", "Yuk tashuvchi"),
+    "Supermarket": ("Kassir", "Xaridor", "Sotuvchi", "Omborchi"),
+    "Universitet": ("Talaba", "Professor", "Dekan", "Laborant"),
+    "Politsiya bo‘limi": ("Tergovchi", "Navbatchi", "Guvoh", "Politsiyachi"),
+    "Kinoteatr": (
+        "Tomoshabin",
+        "Chipta sotuvchi",
+        "Kinomexanik",
+        "Nazoratchi",
+    ),
+    "Teatr": ("Aktyor", "Rejissyor", "Tomoshabin", "Grimchi"),
+    "Muzey": ("Ekskursovod", "Sayyoh", "Qo‘riqchi", "Restavrator"),
+    "Kutubxona": ("Kutubxonachi", "Kitobxon", "Talaba", "Arxivchi"),
+    "Stadion": ("Futbolchi", "Hakam", "Muxlis", "Murabbiy"),
+    "Hayvonot bog‘i": ("Veterinar", "Mehmon", "Qarovchi", "Qo‘riqchi"),
+    "Ferma": ("Fermer", "Veterinar", "Traktorchi", "Ishchi"),
+    "Qurilish maydoni": (
+        "Quruvchi",
+        "Muhandis",
+        "Arxitektor",
+        "Kran haydovchisi",
+    ),
+    "Kema": ("Kapitan", "Dengizchi", "Yo‘lovchi", "Oshpaz"),
+    "Tog‘ lageri": ("Alpinist", "Yo‘lboshchi", "Sayyoh", "Qutqaruvchi"),
+}
