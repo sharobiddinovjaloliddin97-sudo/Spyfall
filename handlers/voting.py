@@ -1,9 +1,16 @@
 from telegram.error import TelegramError
 
 from game import GameError, Phase
-from handlers.common import current, group_command, service
-from handlers.lobby import add_player
-from keyboards import accuse_keyboard, vote_keyboard
+from handlers.common import current, group_command, require_manager, service
+from handlers.lobby import add_player, remove_player
+from keyboards import (
+    accuse_keyboard,
+    lobby_time_keyboard,
+    menu_back_keyboard,
+    start_menu_keyboard,
+    vote_keyboard,
+)
+from locations import LOCATIONS, format_location
 from texts import tr
 
 
@@ -21,6 +28,7 @@ async def begin_vote(svc, game, accuser, accused):
             needed=len(game.players) // 2 + 1,
         ),
         reply_markup=vote_keyboard(game),
+        parse_mode="Markdown",
     )
     if sent is None:
         await svc.cancel(game)
@@ -62,7 +70,6 @@ async def accuse(update, context):
 
 async def callback(update, context):
     query = update.callback_query
-    # Acknowledge promptly, including slow role/timer side effects below.
     try:
         await query.answer()
     except TelegramError:
@@ -71,6 +78,106 @@ async def callback(update, context):
     try:
         parts = (query.data or "").split(":")
         action = parts[0]
+
+        # Private chat navigation menu callbacks
+        if action == "m":
+            if update.effective_chat.type != "private":
+                return
+            bot_username = context.bot.username
+            sub = parts[1] if len(parts) > 1 else "main"
+            if sub == "how":
+                await query.edit_message_text(
+                    tr("how_to_play"),
+                    reply_markup=menu_back_keyboard(bot_username),
+                    parse_mode="Markdown",
+                )
+            elif sub == "tips":
+                await query.edit_message_text(
+                    tr("question_tips"),
+                    reply_markup=menu_back_keyboard(bot_username),
+                    parse_mode="Markdown",
+                )
+            elif sub == "locs":
+                formatted = [
+                    f"{format_location(name)}: _{', '.join(roles)}_"
+                    for name, roles in LOCATIONS.items()
+                ]
+                await query.edit_message_text(
+                    tr("locations", names="\n".join(formatted)),
+                    reply_markup=menu_back_keyboard(bot_username),
+                    parse_mode="Markdown",
+                )
+            else:
+                await query.edit_message_text(
+                    tr("private_start"),
+                    reply_markup=start_menu_keyboard(bot_username),
+                    parse_mode="Markdown",
+                )
+            return
+
+        # Spy looking up 24 locations in private DM
+        if action == "s":
+            if update.effective_chat.type != "private":
+                return
+            formatted = [
+                f"{format_location(name)}: _{', '.join(roles)}_"
+                for name, roles in LOCATIONS.items()
+            ]
+            text = tr("locations", names="\n".join(formatted))
+            await query.message.reply_text(text, parse_mode="Markdown")
+            return
+
+        # Lobby interactive buttons
+        if action == "l":
+            if update.effective_chat.type not in ("group", "supergroup"):
+                raise GameError("group_only")
+            sub = parts[1]
+            sid = parts[2]
+            chat_id = update.effective_chat.id
+            async with svc.locks.for_chat(chat_id):
+                game = svc.storage.get(chat_id)
+                if not game or game.sid != sid:
+                    raise GameError("stale")
+                await svc.expire(game)
+                if svc.storage.get(chat_id) is None:
+                    raise GameError("stale")
+                if sub == "leave":
+                    await remove_player(svc, game, update.effective_user.id)
+                elif sub == "start":
+                    game.deal(update.effective_user.id)
+                    svc.storage.save(game)
+                    await svc.distribute(game)
+                elif sub == "rules":
+                    popup = (
+                        "🕵️ Shpion qoidalari:\n"
+                        "• 1 kishi shpion, boshqalar bitta maxfiy joyda.\n"
+                        "• Navbat bilan savol bering, joy nomini aytmang!\n"
+                        "• Gumon bo‘lsa /accuse bilan ayblang."
+                    )
+                    try:
+                        await query.answer(popup, show_alert=True)
+                    except TelegramError:
+                        pass
+                elif sub == "time_menu":
+                    await require_manager(update, context, game)
+                    await svc.edit(
+                        chat_id,
+                        game.lobby_message_id,
+                        svc.render_lobby(game),
+                        reply_markup=lobby_time_keyboard(game),
+                        parse_mode="Markdown",
+                    )
+                elif sub == "time":
+                    await require_manager(update, context, game)
+                    minutes = int(parts[3])
+                    game.minutes = minutes
+                    svc.storage.save(game)
+                    await svc.update_lobby(game)
+                elif sub == "back":
+                    await svc.update_lobby(game)
+            return
+
+        # Existing actions: g (guess), j (join), a (accuse), v (vote)
         if action == "g" and len(parts) == 4:
             if update.effective_chat.type != "private":
                 raise GameError("stale")
@@ -84,6 +191,7 @@ async def callback(update, context):
             value = int(parts[2]) if len(parts) == 3 else None
         else:
             raise GameError("stale")
+
         async with svc.locks.for_chat(chat_id):
             game = svc.storage.get(chat_id)
             if not game or game.sid != sid:
@@ -101,7 +209,6 @@ async def callback(update, context):
                     raise GameError("stale")
                 complete = game.vote(uid, bool(value), svc.clock())
                 svc.storage.save(game)
-                # No extra group messages per vote; answer privately via alert.
                 try:
                     await query.answer(tr("voted"))
                 except TelegramError:
@@ -122,3 +229,4 @@ async def callback(update, context):
             await query.answer(tr(key), show_alert=True)
         except TelegramError:
             await svc.send(update.effective_chat.id, tr(key))
+

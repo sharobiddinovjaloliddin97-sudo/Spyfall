@@ -72,43 +72,40 @@ python main.py
 
 Kamida uchta haqiqiy Telegram akkaunti kerak; bot akkauntlari qatnashmaydi.
 
-1. Hamma botga shaxsiy `/start` yuboradi.
-2. Guruhda bir kishi `/newgame` yozadi.
-3. Hamma, shu jumladan lobbi yaratuvchisi ham, `/join` yozadi yoki **Qo‘shilish** tugmasini bosadi.
-4. Ixtiyoriy: yaratuvchi `/settime 5` yozadi.
-5. Istalgan qo‘shilgan ishtirokchi `/startgame` yozadi.
-6. Har kim DM orqali rolini oladi. Guruhda savol-javob boshlanadi.
-7. `/accuse` menyusidan gumonlanuvchini tanlang, keyin ovoz bering.
-8. Shpion topilsa, u DMdagi joy tugmalaridan bittasini tanlaydi.
+1. Hamma botga shaxsiy `/start` yuboradi (yoki lobbidagi tugma orqali ochadi).
+2. Guruhda bir kishi `/newgame` yozadi — interaktiv jonli lobbi ochiladi.
+3. Ishtirokchilar **🙋 Qo‘shilish** tugmasini bosadi (lobbi xabari jonli yangilanadi).
+4. Ixtiyoriy: yaratuvchi **⏱ Vaqt** tugmasi orqali o‘yin vaqtini belgilaydi.
+5. Kamida 3 kishi bo‘lgach, **▶️ O‘yinni boshlash** tugmasi paydo bo‘ladi va o‘yin boshlanadi.
+6. Har kim shaxsiy xabarda (DM) o‘z rolini spoiler (yashirin) ko‘rinishda oladi. Shpion esa 24 ta joy ro‘yxatini bitta tugma bilan ko‘ra oladi.
+7. Guruhda bot tasodifiy birinchi savol beruvchini e’lon qiladi va savol-javob boshlanadi.
+8. Gumon paydo bo‘lganda `/accuse` menyusidan gumonlanuvchini tanlang, keyin ovoz bering.
+9. Shpion topilsa, unga shaxsiy chatida barcha 24 joy ko‘rsatilgan tugmalar va 30 soniya beriladi.
 
 ## Komandalar
 
 | Komanda | Vazifasi |
 |---|---|
-| `/start` | Shaxsiy suhbatda botni tayyorlash; guruhda tanishtirish |
-| `/help` | To‘liq o‘yin qoidalari |
-| `/newgame` | Guruh uchun yangi lobbi |
-| `/join` | Lobbiga qo‘shilish, maksimal 10 kishi |
-| `/leave` | Faqat lobbidan chiqish |
+| `/start` | Shaxsiy suhbatda interaktiv bosh menyu (qoidalar, maslahatlar, joylar); guruhda tanishtirish |
+| `/help` | O‘yin qoidalari va yo‘riqnoma |
+| `/newgame` | Guruh uchun interaktiv jonli lobbi ochish |
+| `/join` | Lobbiga qo‘shilish (yoki tugma orqali) |
+| `/leave` | Lobbidan chiqish (yoki tugma orqali) |
 | `/players` | Ishtirokchilar va belgilangan vaqt |
-| `/startgame` | Kamida 3 ishtirokchi bilan boshlash |
-| `/settime 8` | Faqat lobbida 2–30 daqiqa; standart 8 |
+| `/startgame` | Kamida 3 ishtirokchi bilan boshlash (yoki tugma orqali) |
+| `/settime 8` | Faqat lobbida 2–30 daqiqa (yoki tugma orqali) |
 | `/accuse @username` | Ishtirokchini ayblash |
 | `/accuse` | Inline menyu; xabarga reply qilinsa, o‘sha odam ayblanadi |
 | `/endgame` | Yaratuvchi yoki guruh administratori tomonidan bekor qilish |
 | `/stats` | Guruh bo‘yicha o‘yinlar, shpion bo‘lish va g‘alabalar |
-| `/locations` | Barcha mumkin bo‘lgan joylar |
+| `/locations` | Barcha mumkin bo‘lgan joylar va rollar |
 
 ## Qoidalar bo‘yicha aniq qarorlar
 
-- Lobbi yaratuvchisi avtomatik qo‘shilmaydi; u ham `/join` qiladi.
-- `/startgame` ni istalgan ishtirokchi ishlatadi. `/settime` va `/endgame` —
-  faqat yaratuvchi yoki guruh administratori uchun.
-- Bitta shpion tasodifiy tanlanadi. Boshqalarning rollari joydagi ro‘yxatdan
-  tanlanadi; o‘yinchilar ko‘p bo‘lsa, kasblar takrorlanishi mumkin.
-- Barcha DMlar avval tekshiriladi. Birortasiga yozib bo‘lmasa yoki rollarni
-  tarqatish vaqtida xato bo‘lsa, urinish bekor qilinadi. Avval yuborilgan rollar
-  haqiqiy emas; yangi `/newgame` va qayta `/join` kerak.
+- Lobbi yaratuvchisi avtomatik qo‘shilmaydi; u ham «Qo‘shilish»ni bosadi.
+- «O‘yinni boshlash»ni istalgan ishtirokchi bosishi mumkin. Vaqt va bekor qilish — faqat yaratuvchi yoki guruh admini uchun.
+- Bitta shpion tasodifiy tanlanadi. Boshqalarning rollari joydagi ro‘yxatdan tanlanadi.
+- Barcha DMlar avval tekshiriladi. Agar biror o‘yinchi botga `/start` bosmagan bo‘lsa, butun lobbi o‘chib ketmaydi; bot aynan o‘sha o‘yinchilarni ogohlantiradi va lobbini saqlab qoladi. Qayta boshlash uchun faqat botni ochib /start bosish va tugmani qayta bosish kifoya.
 - Rol yoki joy guruhga o‘yin tugashidan oldin chiqarilmaydi.
 - Yarim vaqtda va bir daqiqa qolganda eslatma bor. Ikki daqiqalik o‘yinda
   bu ikki eslatma bir xil bo‘lgani uchun faqat bir marta yuboriladi.

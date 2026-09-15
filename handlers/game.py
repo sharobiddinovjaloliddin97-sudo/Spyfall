@@ -1,27 +1,41 @@
 from handlers.common import current, group_command, require_manager, service
-from locations import LOCATIONS
+from keyboards import start_menu_keyboard
+from locations import LOCATIONS, format_location
 from texts import tr
 
 
 async def start(update, context):
-    key = (
-        "private_start"
-        if update.effective_chat.type == "private"
-        else "group_start"
-    )
-    await update.effective_message.reply_text(tr(key))
+    if update.effective_chat.type == "private":
+        await update.effective_message.reply_text(
+            tr("private_start"),
+            reply_markup=start_menu_keyboard(context.bot.username),
+            parse_mode="Markdown",
+        )
+    else:
+        await update.effective_message.reply_text(
+            tr("group_start"),
+            parse_mode="Markdown",
+        )
 
 
 async def help_command(update, context):
-    await update.effective_message.reply_text(tr("help"))
+    await update.effective_message.reply_text(
+        tr("help"),
+        parse_mode="Markdown",
+    )
 
 
 async def locations(update, context):
+    formatted = [
+        f"{format_location(name)}: _{', '.join(roles)}_"
+        for name, roles in LOCATIONS.items()
+    ]
     await update.effective_message.reply_text(
         tr(
             "locations",
-            names="\n".join(LOCATIONS),
-        )
+            names="\n".join(formatted),
+        ),
+        parse_mode="Markdown",
     )
 
 
@@ -63,5 +77,7 @@ async def stats(update, context):
                     )
                     for s in rows[offset : offset + 15]
                 ),
-            )
+            ),
+            parse_mode="Markdown",
         )
+

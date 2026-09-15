@@ -36,3 +36,35 @@ LOCATIONS = {
     "Kema": ("Kapitan", "Dengizchi", "Yo‘lovchi", "Oshpaz"),
     "Tog‘ lageri": ("Alpinist", "Yo‘lboshchi", "Sayyoh", "Qutqaruvchi"),
 }
+
+LOCATION_EMOJIS = {
+    "Restoran": "🍽",
+    "Samolyot": "✈️",
+    "Maktab": "🏫",
+    "Kasalxona": "🏥",
+    "Konsert": "🎤",
+    "Kosmik stansiya": "🚀",
+    "Poyezd": "🚆",
+    "Plyaj": "🏖",
+    "Bank": "🏦",
+    "Sirk": "🎪",
+    "Mehmonxona": "🏨",
+    "Supermarket": "🛒",
+    "Universitet": "🎓",
+    "Politsiya bo‘limi": "👮‍♂️",
+    "Kinoteatr": "🎬",
+    "Teatr": "🎭",
+    "Muzey": "🏛",
+    "Kutubxona": "📚",
+    "Stadion": "⚽️",
+    "Hayvonot bog‘i": "🦁",
+    "Ferma": "🚜",
+    "Qurilish maydoni": "🏗",
+    "Kema": "🚢",
+    "Tog‘ lageri": "⛺️",
+}
+
+
+def format_location(name: str) -> str:
+    emoji = LOCATION_EMOJIS.get(name, "📍")
+    return f"{emoji} {name}"

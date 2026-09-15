@@ -39,6 +39,8 @@ class Game:
     players: dict[int, Player] = field(default_factory=dict)
     location: str | None = None
     spy_id: int | None = None
+    first_player_id: int | None = None
+    lobby_message_id: int | None = None
     roles: dict[int, str] = field(default_factory=dict)
     locations: tuple[str, ...] = field(
         default_factory=lambda: tuple(LOCATIONS)
@@ -80,12 +82,20 @@ class Game:
         rng = rng or secrets.SystemRandom()
         self.location = rng.choice(self.locations)
         self.spy_id = rng.choice(tuple(self.players))
+        self.first_player_id = rng.choice(tuple(self.players))
         self.roles = {
             uid: rng.choice(LOCATIONS[self.location])
             for uid in self.players
             if uid != self.spy_id
         }
         self.phase = Phase.DEALING
+
+    def reset_lobby(self):
+        self.phase = Phase.LOBBY
+        self.location = None
+        self.spy_id = None
+        self.first_player_id = None
+        self.roles = {}
 
     def activate(self, now):
         self.require(Phase.DEALING)
