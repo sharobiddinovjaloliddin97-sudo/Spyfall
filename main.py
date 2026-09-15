@@ -3,6 +3,11 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+from telegram import (
+    BotCommand,
+    BotCommandScopeAllGroupChats,
+    BotCommandScopeAllPrivateChats,
+)
 from telegram.error import TelegramError
 from telegram.ext import (
     ApplicationBuilder,
@@ -14,6 +19,32 @@ from handlers import game, lobby, voting
 from service import GameService
 from storage import MemoryStorage
 from texts import tr
+
+
+async def post_init(application):
+    private_commands = [
+        BotCommand("start", "Bosh menyu va qo‘llanma"),
+        BotCommand("help", "O‘yin qoidalari"),
+        BotCommand("locations", "Barcha mumkin bo‘lgan joylar"),
+    ]
+    group_commands = [
+        BotCommand("newgame", "Yangi o‘yin lobbisi ochish"),
+        BotCommand("help", "Qoidalar va yo‘riqnoma"),
+        BotCommand("locations", "Lokatsiyalar ro‘yxati"),
+        BotCommand("players", "Ishtirokchilar ro‘yxati"),
+        BotCommand("accuse", "Shpionlikda ayblash"),
+        BotCommand("stats", "Guruh statistikasi"),
+        BotCommand("endgame", "O‘yinni to‘xtatish"),
+    ]
+    try:
+        await application.bot.set_my_commands(
+            private_commands, scope=BotCommandScopeAllPrivateChats()
+        )
+        await application.bot.set_my_commands(
+            group_commands, scope=BotCommandScopeAllGroupChats()
+        )
+    except Exception as exc:
+        logging.warning("Telegram menyusini o‘rnatib bo‘lmadi: %s", exc)
 
 
 async def error_handler(update, context):
@@ -31,6 +62,7 @@ def build_application(token):
         .concurrent_updates(32)
         .connection_pool_size(64)
         .pool_timeout(30)
+        .post_init(post_init)
         .build()
     )
 

@@ -7,7 +7,8 @@ import time
 from telegram.error import TelegramError
 
 from game import Phase
-from keyboards import guess_keyboard
+from keyboards import guess_keyboard, lobby_keyboard, spy_role_keyboard
+from locations import format_location
 from storage import ChatLocks, Storage
 from texts import tr
 
@@ -29,6 +30,70 @@ class GameService:
             LOG.warning("Xabar yuborilmadi (%s).", type(exc).__name__)
             return None
 
+    async def edit(self, chat_id, message_id, text, **kwargs):
+        try:
+            return await self.app.bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=message_id,
+                text=text,
+                **kwargs,
+            )
+        except TelegramError as exc:
+            LOG.warning("Xabar tahrirlanmadi (%s).", type(exc).__name__)
+            return None
+
+    def render_lobby(self, game):
+        if not game.players:
+            player_list = tr("empty")
+        else:
+            player_list = "\n".join(
+                f"{i}. 👤 {p.name}" + (f" (@{p.username})" if p.username else "")
+                for i, p in enumerate(game.players.values(), 1)
+            )
+        status_hint = (
+            tr("lobby_waiting")
+            if len(game.players) < 3
+            else tr("lobby_ready")
+        )
+        creator_name = (
+            game.players[game.owner_id].name
+            if game.owner_id in game.players
+            else str(game.owner_id)
+        )
+        return tr(
+            "lobby",
+            name=creator_name,
+            minutes=game.minutes,
+            count=len(game.players),
+            player_list=player_list,
+            status_hint=status_hint,
+        )
+
+    async def update_lobby(self, game):
+        text = self.render_lobby(game)
+        bot_username = getattr(self.app.bot, "username", None) or "SpyfallBot"
+        markup = lobby_keyboard(game, bot_username)
+        if game.lobby_message_id:
+            res = await self.edit(
+                game.chat_id,
+                game.lobby_message_id,
+                text,
+                reply_markup=markup,
+                parse_mode="Markdown",
+            )
+            if res:
+                return res
+        sent = await self.send(
+            game.chat_id,
+            text,
+            reply_markup=markup,
+            parse_mode="Markdown",
+        )
+        if sent:
+            game.lobby_message_id = sent.message_id
+            self.storage.save(game)
+        return sent
+
     def schedule(self, game, event, delay):
         self.app.job_queue.run_once(
             self.on_timer,
@@ -47,36 +112,50 @@ class GameService:
         self.cancel_jobs(game)
         self.storage.delete(game.chat_id, game.sid)
         game.phase = Phase.ENDED
-        await self.send(game.chat_id, tr("cancelled"))
+        await self.send(game.chat_id, tr("cancelled"), parse_mode="Markdown")
 
     async def distribute(self, game):
         # Probe all DMs first, before disclosing any roles.
         failed = []
         for uid, player in game.players.items():
-            sent = await self.send(uid, tr("probe", group=game.title))
+            sent = await self.send(
+                uid, tr("probe", group=game.title), parse_mode="Markdown"
+            )
             if sent is None:
                 failed.append(player.name)
         if not failed:
             for uid, player in game.players.items():
                 if uid == game.spy_id:
                     message = tr("spy_role", group=game.title, sid=game.sid)
+                    markup = spy_role_keyboard(game.chat_id, game.sid)
                 else:
                     message = tr(
                         "role",
                         group=game.title,
                         sid=game.sid,
-                        location=game.location,
+                        location=format_location(game.location),
                         role=game.roles[uid],
                     )
-                if await self.send(uid, message) is None:
+                    markup = None
+                if (
+                    await self.send(
+                        uid,
+                        message,
+                        parse_mode="Markdown",
+                        reply_markup=markup,
+                    )
+                    is None
+                ):
                     failed.append(player.name)
         if failed:
-            self.storage.delete(game.chat_id, game.sid)
-            game.phase = Phase.ENDED
+            game.reset_lobby()
+            self.storage.save(game)
             await self.send(
                 game.chat_id,
                 tr("dm_failed", names=", ".join(failed)),
+                parse_mode="Markdown",
             )
+            await self.update_lobby(game)
             return
         game.activate(self.clock())
         self.storage.save(game)
@@ -85,9 +164,15 @@ class GameService:
         self.schedule(game, "half", duration / 2)
         if duration / 2 != duration - 60:
             self.schedule(game, "minute", duration - 60)
+        first_player = (
+            game.players[game.first_player_id].name
+            if game.first_player_id in game.players
+            else "Ishtirokchilardan biri"
+        )
         sent = await self.send(
             game.chat_id,
-            tr("started", minutes=game.minutes),
+            tr("started", minutes=game.minutes, first_player=first_player),
+            parse_mode="Markdown",
         )
         if sent is None:
             await self.cancel(game)
@@ -103,10 +188,11 @@ class GameService:
             tr(
                 "result",
                 spy=game.players[game.spy_id].name,
-                location=game.location,
+                location=format_location(game.location),
                 winner=tr(f"{game.winner}_winner"),
                 reason=tr(game.reason),
             ),
+            parse_mode="Markdown",
         )
 
     async def resolve_vote(self, game):
@@ -122,17 +208,19 @@ class GameService:
                 no=no,
                 absent=len(game.players) - len(game.votes),
             ),
+            parse_mode="Markdown",
         )
         if game.phase == Phase.ENDED:
             await self.publish_result(game)
             return
         # The round timer no longer applies during the final chance.
         self.cancel_jobs(game)
-        await self.send(game.chat_id, tr("last_chance"))
+        await self.send(game.chat_id, tr("last_chance"), parse_mode="Markdown")
         sent = await self.send(
             game.spy_id,
             tr("guess_prompt", group=game.title),
             reply_markup=guess_keyboard(game),
+            parse_mode="Markdown",
         )
         if sent is None:
             game.finish("civilians", "guess_dm_failed_reason")

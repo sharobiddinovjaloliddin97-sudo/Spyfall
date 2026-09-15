@@ -3,22 +3,25 @@
 Muhit: Python 3.12, python-telegram-bot 21.11.1, JobQueue qo‘shimchasi.
 Kod Python 3.11+ uchun yozilgan.
 
-17 ta offline avtomatik test muvaffaqiyatli o‘tdi:
+20 ta offline avtomatik test muvaffaqiyatli o‘tdi:
 
 - 3–10 ishtirokchi chegarasi, takroriy qo‘shilish, chiqish va boshlash shartlari.
-- 24 ta joy, yagona shpion, joyga mos oddiy rollar.
+- 24 ta joy, yagona shpion, joyga mos oddiy rollar va emojilar.
 - Ishtirokchi bo‘lmagan odamning ovozi/ayblovi, o‘zini ayblash va takroriy ovoz.
 - Barcha ishtirokchilar bo‘yicha qat’iy ko‘pchilik, teng ovoz va noto‘g‘ri ayblov.
 - Shpionning to‘g‘ri/xato taxmini, boshqa odamning taxmini va ikkinchi urinish.
 - Ovoz berish hamda oxirgi taxmin vaqt chegaralari.
 - Guruhlar holati/statistikasining ajratilishi va statistikani bir marta yozish.
-- Rollarning faqat DMga ketishi, eslatmalar va taymerlarning qo‘yilishi.
-- DMni boshlang‘ich tekshirish yoki rol tarqatish paytidagi xatoda bekor qilish.
+- Rollarning faqat DMga spoiler ko‘rinishida ketishi, eslatmalar va taymerlar.
+- Shaxsiy interaktiv bosh menyu navigatsiyasi (qoidalar, maslahatlar, lokatsiyalar).
+- Shpionning shaxsiy chatda lokatsiyalar ro‘yxatini ko‘rish tugmasi.
+- Lobbining inline tugmalar orqali boshqarilishi (chiqish, vaqt, qoidalar, qayta qo‘shilish).
+- DM xatoligida lobbining buzilmasdan saqlanib qolishi va ogohlantirish berilishi.
 - Bir vaqtda kelgan timeoutlar, takroriy ovoz va oxirgi taxminlar.
 - Eski sessiya tugmalari/joblari yangi o‘yinga tegmasligi.
 - Oxirgi imkoniyat va bekor qilishda joblarni tozalash.
 - Callback payloadlarining 64 baytdan oshmasligi.
-- ApplicationBuilder, JobQueue va barcha zarur komandalar ulanishi.
+- ApplicationBuilder, JobQueue, post_init va barcha buyruqlar menyusining ulanishi.
 
 Ruff tekshiruvi: E/F/I qoidalari, 79 belgilik satrlar; tarjima matnlari uchun
 satr uzunligi istisnosi. Python sintaksisi compileall bilan tekshirildi.

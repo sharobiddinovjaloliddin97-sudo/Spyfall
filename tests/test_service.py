@@ -40,7 +40,10 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
         self.bot = SimpleNamespace(
             send_message=AsyncMock(
                 return_value=SimpleNamespace(message_id=1),
-            )
+            ),
+            edit_message_text=AsyncMock(
+                return_value=SimpleNamespace(message_id=1),
+            ),
         )
         self.app = SimpleNamespace(
             bot=self.bot, job_queue=Queue(), bot_data={}
@@ -86,7 +89,10 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
 
         self.bot.send_message.side_effect = send
         await self.svc.distribute(game)
-        self.assertIsNone(self.svc.storage.get(game.chat_id))
+        self.assertEqual(game.phase, Phase.LOBBY)
+        self.assertIsNone(game.location)
+        self.assertIsNone(game.spy_id)
+        self.assertEqual(game.roles, {})
         self.assertEqual(self.svc.storage.stats(game.chat_id), [])
         self.assertEqual(self.app.job_queue.jobs(), [])
         self.assertFalse(
@@ -95,7 +101,7 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
                 for c in self.bot.send_message.call_args_list
             )
         )
-        self.assertIn("Ism 2", self.bot.send_message.call_args.args[1])
+        self.assertIn("Ism 2", self.bot.send_message.call_args_list[4].args[1])
 
     async def test_partial_role_delivery_aborts_without_statistics(self):
         game = self.pending_game()
@@ -107,7 +113,9 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
 
         self.bot.send_message.side_effect = send
         await self.svc.distribute(game)
-        self.assertIsNone(self.svc.storage.get(game.chat_id))
+        self.assertEqual(game.phase, Phase.LOBBY)
+        self.assertIsNone(game.location)
+        self.assertIsNone(game.spy_id)
         self.assertEqual(self.app.job_queue.jobs(), [])
         self.assertEqual(self.svc.storage.stats(game.chat_id), [])
 
@@ -166,6 +174,15 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
             data=data,
             answer=AsyncMock(),
             edit_message_text=AsyncMock(),
+            message=SimpleNamespace(
+                reply_text=AsyncMock(),
+            ),
+        )
+        bot = SimpleNamespace(
+            username="TestSpyfallBot",
+            get_chat_member=AsyncMock(
+                return_value=SimpleNamespace(status="administrator")
+            ),
         )
         update = SimpleNamespace(
             callback_query=query,
@@ -173,9 +190,57 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
                 id=chat_id,
                 type="private" if private else "supergroup",
             ),
-            effective_user=SimpleNamespace(id=uid),
+            effective_user=SimpleNamespace(
+                id=uid, full_name=f"User {uid}", username=f"user{uid}"
+            ),
         )
-        return update, SimpleNamespace(application=self.app)
+        return update, SimpleNamespace(application=self.app, bot=bot)
+
+    async def test_private_menu_navigation(self):
+        update, ctx = self.query("m:how", 1, 1, private=True)
+        await callback(update, ctx)
+        update.callback_query.edit_message_text.assert_awaited()
+        self.assertIn("QANDAY O‘YNALADI", update.callback_query.edit_message_text.call_args[0][0])
+
+        update, ctx = self.query("m:tips", 1, 1, private=True)
+        await callback(update, ctx)
+        self.assertIn("MASLAHATLAR", update.callback_query.edit_message_text.call_args[0][0])
+
+        update, ctx = self.query("m:locs", 1, 1, private=True)
+        await callback(update, ctx)
+        self.assertIn("Barcha mumkin", update.callback_query.edit_message_text.call_args[0][0])
+
+    async def test_spy_locations_callback(self):
+        update, ctx = self.query("s:locs:-100:test-sid", 1, 1, private=True)
+        await callback(update, ctx)
+        update.callback_query.message.reply_text.assert_awaited()
+        self.assertIn("Barcha mumkin", update.callback_query.message.reply_text.call_args[0][0])
+
+    async def test_lobby_interactive_callbacks(self):
+        game = Game(-100, "Guruh", 1)
+        game.join(Player(1, "User 1"))
+        game.join(Player(2, "User 2"))
+        self.svc.storage.save(game)
+
+        # Leave callback
+        update, ctx = self.query(f"l:leave:{game.sid}", 2)
+        await callback(update, ctx)
+        self.assertNotIn(2, game.players)
+
+        # Re-join via j:
+        update, ctx = self.query(f"j:{game.sid}", 2)
+        await callback(update, ctx)
+        self.assertIn(2, game.players)
+
+        # Time change via l:time:
+        update, ctx = self.query(f"l:time:{game.sid}:10", 1)
+        await callback(update, ctx)
+        self.assertEqual(game.minutes, 10)
+
+        # Rules popup
+        update, ctx = self.query(f"l:rules:{game.sid}", 1)
+        await callback(update, ctx)
+        update.callback_query.answer.assert_awaited()
 
     async def test_callbacks_stale_unauthorized_and_concurrent_votes(self):
         game = active_game()
@@ -239,3 +304,4 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
                 "stats",
             }.issubset(commands)
         )
+
