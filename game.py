@@ -5,7 +5,7 @@ import secrets
 from dataclasses import dataclass, field
 from enum import Enum
 
-from locations import LOCATIONS
+from locations import LOCATIONS, get_locations
 
 
 class Phase(str, Enum):
@@ -36,6 +36,7 @@ class Game:
     sid: str = field(default_factory=lambda: secrets.token_hex(4))
     phase: Phase = Phase.LOBBY
     minutes: int = 8
+    lang: str = "uz"
     players: dict[int, Player] = field(default_factory=dict)
     location: str | None = None
     spy_id: int | None = None
@@ -61,6 +62,11 @@ class Game:
         if user_id not in self.players:
             raise GameError("not_player")
 
+    def set_language(self, lang: str):
+        self.require(Phase.LOBBY, "lobby_only")
+        self.lang = lang
+        self.locations = tuple(get_locations(lang))
+
     def join(self, player):
         self.require(Phase.LOBBY, "lobby_only")
         if player.id in self.players:
@@ -80,15 +86,18 @@ class Game:
         if len(self.players) < 3:
             raise GameError("minimum")
         rng = rng or secrets.SystemRandom()
+        loc_dict = get_locations(self.lang)
+        self.locations = tuple(loc_dict)
         self.location = rng.choice(self.locations)
         self.spy_id = rng.choice(tuple(self.players))
         self.first_player_id = rng.choice(tuple(self.players))
         self.roles = {
-            uid: rng.choice(LOCATIONS[self.location])
+            uid: rng.choice(loc_dict[self.location])
             for uid in self.players
             if uid != self.spy_id
         }
         self.phase = Phase.DEALING
+
 
     def reset_lobby(self):
         self.phase = Phase.LOBBY

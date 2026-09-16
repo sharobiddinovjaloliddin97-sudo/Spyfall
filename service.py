@@ -43,17 +43,18 @@ class GameService:
             return None
 
     def render_lobby(self, game):
+        lang = getattr(game, "lang", "uz")
         if not game.players:
-            player_list = tr("empty")
+            player_list = tr("empty", lang=lang)
         else:
             player_list = "\n".join(
                 f"{i}. 👤 {p.name}" + (f" (@{p.username})" if p.username else "")
                 for i, p in enumerate(game.players.values(), 1)
             )
         status_hint = (
-            tr("lobby_waiting")
+            tr("lobby_waiting", lang=lang)
             if len(game.players) < 3
-            else tr("lobby_ready")
+            else tr("lobby_ready", lang=lang)
         )
         creator_name = (
             game.players[game.owner_id].name
@@ -62,6 +63,7 @@ class GameService:
         )
         return tr(
             "lobby",
+            lang=lang,
             name=creator_name,
             minutes=game.minutes,
             count=len(game.players),
@@ -112,25 +114,28 @@ class GameService:
         self.cancel_jobs(game)
         self.storage.delete(game.chat_id, game.sid)
         game.phase = Phase.ENDED
-        await self.send(game.chat_id, tr("cancelled"), parse_mode="Markdown")
+        lang = getattr(game, "lang", "uz")
+        await self.send(game.chat_id, tr("cancelled", lang=lang), parse_mode="Markdown")
 
     async def distribute(self, game):
+        lang = getattr(game, "lang", "uz")
         # Probe all DMs first, before disclosing any roles.
         failed = []
         for uid, player in game.players.items():
             sent = await self.send(
-                uid, tr("probe", group=game.title), parse_mode="Markdown"
+                uid, tr("probe", lang=lang, group=game.title), parse_mode="Markdown"
             )
             if sent is None:
                 failed.append(player.name)
         if not failed:
             for uid, player in game.players.items():
                 if uid == game.spy_id:
-                    message = tr("spy_role", group=game.title, sid=game.sid)
-                    markup = spy_role_keyboard(game.chat_id, game.sid)
+                    message = tr("spy_role", lang=lang, group=game.title, sid=game.sid)
+                    markup = spy_role_keyboard(game.chat_id, game.sid, lang=lang)
                 else:
                     message = tr(
                         "role",
+                        lang=lang,
                         group=game.title,
                         sid=game.sid,
                         location=format_location(game.location),
@@ -152,7 +157,7 @@ class GameService:
             self.storage.save(game)
             await self.send(
                 game.chat_id,
-                tr("dm_failed", names=", ".join(failed)),
+                tr("dm_failed", lang=lang, names=", ".join(failed)),
                 parse_mode="Markdown",
             )
             await self.update_lobby(game)
@@ -167,11 +172,11 @@ class GameService:
         first_player = (
             game.players[game.first_player_id].name
             if game.first_player_id in game.players
-            else "Ishtirokchilardan biri"
+            else ("Игрок" if lang == "ru" else "Ishtirokchilardan biri")
         )
         sent = await self.send(
             game.chat_id,
-            tr("started", minutes=game.minutes, first_player=first_player),
+            tr("started", lang=lang, minutes=game.minutes, first_player=first_player),
             parse_mode="Markdown",
         )
         if sent is None:
@@ -183,19 +188,22 @@ class GameService:
         # produce duplicate statistics or keep a finished game active.
         self.storage.record(game)
         self.storage.delete(game.chat_id, game.sid)
+        lang = getattr(game, "lang", "uz")
         await self.send(
             game.chat_id,
             tr(
                 "result",
+                lang=lang,
                 spy=game.players[game.spy_id].name,
                 location=format_location(game.location),
-                winner=tr(f"{game.winner}_winner"),
-                reason=tr(game.reason),
+                winner=tr(f"{game.winner}_winner", lang=lang),
+                reason=tr(game.reason, lang=lang),
             ),
             parse_mode="Markdown",
         )
 
     async def resolve_vote(self, game):
+        lang = getattr(game, "lang", "uz")
         yes = sum(game.votes.values())
         no = len(game.votes) - yes
         game.resolve_vote(self.clock())
@@ -204,6 +212,7 @@ class GameService:
             game.chat_id,
             tr(
                 "vote_result",
+                lang=lang,
                 yes=yes,
                 no=no,
                 absent=len(game.players) - len(game.votes),
@@ -215,10 +224,10 @@ class GameService:
             return
         # The round timer no longer applies during the final chance.
         self.cancel_jobs(game)
-        await self.send(game.chat_id, tr("last_chance"), parse_mode="Markdown")
+        await self.send(game.chat_id, tr("last_chance", lang=lang), parse_mode="Markdown")
         sent = await self.send(
             game.spy_id,
-            tr("guess_prompt", group=game.title),
+            tr("guess_prompt", lang=lang, group=game.title),
             reply_markup=guess_keyboard(game),
             parse_mode="Markdown",
         )
@@ -259,7 +268,8 @@ class GameService:
                         (game.deadline - self.clock()) / 60,
                     ),
                 )
-                await self.send(chat_id, tr("reminder", minutes=remaining))
+                lang = getattr(game, "lang", "uz")
+                await self.send(chat_id, tr("reminder", lang=lang, minutes=remaining))
             deadlines = {
                 "end": (Phase.ACTIVE, game.deadline),
                 "vote": (Phase.VOTING, game.vote_deadline),

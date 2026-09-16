@@ -23,18 +23,20 @@ from texts import tr
 
 async def post_init(application):
     private_commands = [
-        BotCommand("start", "Bosh menyu va qo‘llanma"),
-        BotCommand("help", "O‘yin qoidalari"),
-        BotCommand("locations", "Barcha mumkin bo‘lgan joylar"),
+        BotCommand("start", "Bosh menyu / Главное меню"),
+        BotCommand("help", "Qoidalar / Правила"),
+        BotCommand("locations", "Joylar / Локации"),
+        BotCommand("lang", "Til / Язык"),
     ]
     group_commands = [
-        BotCommand("newgame", "Yangi o‘yin lobbisi ochish"),
-        BotCommand("help", "Qoidalar va yo‘riqnoma"),
-        BotCommand("locations", "Lokatsiyalar ro‘yxati"),
-        BotCommand("players", "Ishtirokchilar ro‘yxati"),
-        BotCommand("accuse", "Shpionlikda ayblash"),
-        BotCommand("stats", "Guruh statistikasi"),
-        BotCommand("endgame", "O‘yinni to‘xtatish"),
+        BotCommand("newgame", "Yangi o‘yin / Новая игра"),
+        BotCommand("help", "Qoidalar / Правила"),
+        BotCommand("locations", "Joylar / Локации"),
+        BotCommand("players", "Ishtirokchilar / Игроки"),
+        BotCommand("accuse", "Ayblash / Обвинить"),
+        BotCommand("stats", "Statistika / Статистика"),
+        BotCommand("lang", "Til / Язык"),
+        BotCommand("endgame", "O‘yinni to‘xtatish / Остановить"),
     ]
     try:
         await application.bot.set_my_commands(
@@ -84,6 +86,8 @@ def build_application(token):
         "accuse": voting.accuse,
         "stats": game.stats,
         "locations": game.locations,
+        "lang": game.lang_command,
+        "language": game.lang_command,
     }
 
     for command, handler in commands.items():

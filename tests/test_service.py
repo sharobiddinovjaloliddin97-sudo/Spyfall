@@ -302,6 +302,66 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
                 "endgame",
                 "accuse",
                 "stats",
+                "lang",
+                "language",
             }.issubset(commands)
         )
+
+    async def test_russian_distribution_and_results(self):
+        game = Game(-100, "Русская группа", 1, lang="ru")
+        for uid in (1, 2, 3):
+            game.join(Player(uid, f"Игрок {uid}"))
+        game.deal(1)
+        self.svc.storage.save(game)
+        await self.svc.distribute(game)
+
+        calls = self.bot.send_message.call_args_list
+        group_text = " ".join(c.args[1] for c in calls if c.args[0] < 0)
+        self.assertIn("ИГРА НАЧАЛАСЬ", group_text)
+
+        role_calls = calls[3:6]
+        for call in role_calls:
+            if call.args[0] == game.spy_id:
+                self.assertIn("ВЫ ШПИОН!", call.args[1])
+            else:
+                self.assertIn(game.location, call.args[1])
+
+        # Test results in Russian
+        game.finish("spy", "timeout_reason")
+        await self.svc.publish_result(game)
+        last_call = self.bot.send_message.call_args_list[-1]
+        self.assertIn("ИГРА ОКОНЧЕНА", last_call.args[1])
+        self.assertIn("Шпион", last_call.args[1])
+
+    async def test_language_callbacks(self):
+        game = Game(-100, "Guruh", 1)
+        game.join(Player(1, "User 1"))
+        self.svc.storage.save(game)
+
+        # Lobby language menu callback
+        update, ctx = self.query(f"l:lang_menu:{game.sid}", 1)
+        await callback(update, ctx)
+        self.bot.edit_message_text.assert_awaited()
+
+        # Switch to Russian in lobby
+        update, ctx = self.query(f"l:set_lang:{game.sid}:ru", 1)
+        await callback(update, ctx)
+        self.assertEqual(game.lang, "ru")
+        self.assertEqual(self.svc.storage.get_chat_lang(-100), "ru")
+
+        # Switch back to Uzbek in lobby
+        update, ctx = self.query(f"l:set_lang:{game.sid}:uz", 1)
+        await callback(update, ctx)
+        self.assertEqual(game.lang, "uz")
+        self.assertEqual(self.svc.storage.get_chat_lang(-100), "uz")
+
+        # Private chat language selection
+        update, ctx = self.query("m:lang_menu", 1, 1, private=True)
+        await callback(update, ctx)
+        self.assertIn("Tilni tanlang", update.callback_query.edit_message_text.call_args[0][0])
+
+        update, ctx = self.query("m:set_lang:ru", 1, 1, private=True)
+        await callback(update, ctx)
+        self.assertEqual(self.svc.storage.get_user_lang(1), "ru")
+        self.assertIn("Добро пожаловать", update.callback_query.edit_message_text.call_args[0][0])
 
