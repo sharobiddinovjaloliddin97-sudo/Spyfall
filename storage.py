@@ -22,6 +22,10 @@ class Storage(Protocol):
     def delete(self, chat_id: int, sid: str) -> None: ...
     def record(self, game: Game) -> None: ...
     def stats(self, chat_id: int) -> list[Stat]: ...
+    def get_chat_lang(self, chat_id: int) -> str: ...
+    def set_chat_lang(self, chat_id: int, lang: str) -> None: ...
+    def get_user_lang(self, user_id: int) -> str: ...
+    def set_user_lang(self, user_id: int, lang: str) -> None: ...
 
 
 class MemoryStorage:
@@ -29,6 +33,8 @@ class MemoryStorage:
         self._games = {}
         self._stats = defaultdict(dict)
         self._recorded = set()
+        self._chat_langs = {}
+        self._user_langs = {}
 
     def get(self, chat_id):
         return self._games.get(chat_id)
@@ -60,6 +66,19 @@ class MemoryStorage:
             self._stats.get(chat_id, {}).values(),
             key=lambda stat: (-stat.wins, stat.name),
         )
+
+    def get_chat_lang(self, chat_id):
+        return self._chat_langs.get(chat_id, "uz")
+
+    def set_chat_lang(self, chat_id, lang):
+        self._chat_langs[chat_id] = lang
+
+    def get_user_lang(self, user_id):
+        return self._user_langs.get(user_id, "uz")
+
+    def set_user_lang(self, user_id, lang):
+        self._user_langs[user_id] = lang
+
 
 
 class ChatLocks:

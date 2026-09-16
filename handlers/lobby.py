@@ -15,8 +15,14 @@ async def newgame(update, context):
     chat = update.effective_chat
     if svc.storage.get(chat.id):
         raise GameError("exists")
+    chat_lang = "uz"
+    if hasattr(svc.storage, "get_chat_lang"):
+        chat_lang = svc.storage.get_chat_lang(chat.id)
     game = Game(
-        chat.id, (chat.title or str(chat.id))[:100], update.effective_user.id
+        chat.id,
+        (chat.title or str(chat.id))[:100],
+        update.effective_user.id,
+        lang=chat_lang,
     )
     svc.storage.save(game)
     sent = await svc.update_lobby(game)
@@ -57,13 +63,15 @@ async def leave(update, context):
 @group_command
 async def players(update, context):
     game = current(service(context), update.effective_chat.id)
+    lang = getattr(game, "lang", "uz")
     names = "\n".join(
         f"{i}. 👤 {p.name}" + (f" (@{p.username})" if p.username else "")
         for i, p in enumerate(game.players.values(), 1)
-    ) or tr("empty")
+    ) or tr("empty", lang=lang)
     await update.message.reply_text(
         tr(
             "players",
+            lang=lang,
             count=len(game.players),
             names=names,
             minutes=game.minutes,
@@ -89,5 +97,6 @@ async def settime(update, context):
     game.minutes = minutes
     svc.storage.save(game)
     await svc.update_lobby(game)
-    await update.message.reply_text(tr("time_set", minutes=minutes))
+    lang = getattr(game, "lang", "uz")
+    await update.message.reply_text(tr("time_set", lang=lang, minutes=minutes))
 

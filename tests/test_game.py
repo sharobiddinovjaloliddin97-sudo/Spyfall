@@ -139,3 +139,32 @@ class RulesTests(unittest.TestCase):
         self.assertEqual(sum(s.spy for s in store.stats(-1)), 1)
         self.assertEqual(sum(s.wins for s in store.stats(-1)), 2)
         self.assertEqual(store.stats(-2), [])
+
+    def test_russian_language_game_and_switching(self):
+        from locations import LOCATIONS_RU
+        game = Game(-100, "Тестовая группа", 1, lang="ru")
+        self.assertEqual(game.lang, "ru")
+        for uid in range(1, 4):
+            game.join(Player(uid, f"Игрок {uid}"))
+        game.deal(1, random.Random(42))
+        self.assertIn(game.location, LOCATIONS_RU)
+        self.assertTrue(all(role in LOCATIONS_RU[game.location] for role in game.roles.values()))
+
+        # Switch language back to uz
+        game.phase = Phase.LOBBY
+        game.set_language("uz")
+        self.assertEqual(game.lang, "uz")
+        game.deal(1, random.Random(42))
+        self.assertIn(game.location, LOCATIONS)
+
+    def test_storage_language_preferences(self):
+        store = MemoryStorage()
+        self.assertEqual(store.get_chat_lang(-100), "uz")
+        store.set_chat_lang(-100, "ru")
+        self.assertEqual(store.get_chat_lang(-100), "ru")
+
+        self.assertEqual(store.get_user_lang(12345), "uz")
+        store.set_user_lang(12345, "ru")
+        self.assertEqual(store.get_user_lang(12345), "ru")
+        store.set_user_lang(12345, "uz")
+        self.assertEqual(store.get_user_lang(12345), "uz")

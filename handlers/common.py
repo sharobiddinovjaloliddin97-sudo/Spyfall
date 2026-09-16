@@ -22,25 +22,29 @@ def current(svc, chat_id):
 def group_command(func):
     @wraps(func)
     async def wrapped(update, context):
+        svc = service(context)
+        chat_lang = "uz"
+        if update.effective_chat and hasattr(svc.storage, "get_chat_lang"):
+            chat_lang = svc.storage.get_chat_lang(update.effective_chat.id)
         if update.effective_chat.type not in ("group", "supergroup"):
-            await update.effective_message.reply_text(tr("group_only"))
+            await update.effective_message.reply_text(tr("group_only", lang=chat_lang))
             return
         if (
             not update.effective_user
             or update.effective_user.is_bot
             or update.effective_message.sender_chat
         ):
-            await update.effective_message.reply_text(tr("human_only"))
+            await update.effective_message.reply_text(tr("human_only", lang=chat_lang))
             return
-        svc = service(context)
         async with svc.locks.for_chat(update.effective_chat.id):
             game = svc.storage.get(update.effective_chat.id)
             if game:
                 await svc.expire(game)
+                chat_lang = getattr(game, "lang", chat_lang)
             try:
                 await func(update, context)
             except GameError as exc:
-                await update.effective_message.reply_text(tr(str(exc)))
+                await update.effective_message.reply_text(tr(str(exc), lang=chat_lang))
 
     return wrapped
 
